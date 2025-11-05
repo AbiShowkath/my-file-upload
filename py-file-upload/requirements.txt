@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+python-dotenv
+azure-storage-blob
+azure-identity
+azure-keyvault-secrets
+python-multipart
