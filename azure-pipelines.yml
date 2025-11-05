@@ -1,0 +1,51 @@
+trigger:
+  - azure-entra-id
+
+variables:
+  appName: 'file-upload-app'
+  namePrefix: 'fileupload'
+  vmImageName: 'ubuntu-latest'
+
+  # system.debug: true
+
+  # buildConfiguration: 'Release'
+
+  # Azure Resource Variables
+  resourceGroupName: $(namePrefix)appRG
+  location: 'eastus'
+
+  # Bicep files
+  deploymentName: 'main'
+  templateFile: 'bicep/$(deploymentName).bicep'
+
+pool:
+  vmImage: $(vmImageName)
+
+parameters:
+- name: serviceConnection
+  displayName: Azure Service Connection Name
+  type: string
+  default: azure-subscription-1
+
+stages:
+- stage: Dev
+  displayName: 'Dev Deployment'
+  jobs:
+  - job: Infrastructure_Deployment
+    displayName: 'Deploy ACR Bicep Template to Azure'  
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+      - task: AzureResourceManagerTemplateDeployment@3
+        displayName: 'Deploy ACR Bicep Template'
+        inputs:
+          deploymentScope: 'Resource Group'
+          action: 'Create Or Update Resource Group'
+          resourceGroupName: '$(resourceGroupName)'
+          location: '$(location)'
+          templateLocation: 'Linked artifact'
+          csmFile: '$(templateFile)'
+          overrideParameters: '-namePrefix $(namePrefix)app'
+          deploymentMode: 'Incremental'
+          deploymentName: '$(deploymentName)'
+          connectedServiceName: '${{ parameters.serviceConnection }}'
