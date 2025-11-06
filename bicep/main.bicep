@@ -3,9 +3,11 @@ param location string = resourceGroup().location
 
 var managedIdentityName = '${namePrefix}-mi'
 
-var keyVaultName = '${namePrefix}-kv-${uniqueString(resourceGroup().id)}'
+var prefix = toLower(substring(namePrefix, 0, min(length(namePrefix), 8)))
+var suffix = substring(uniqueString(resourceGroup().id), 0, 8)
 
-var storageAccountName = toLower('${namePrefix}sa${uniqueString(resourceGroup().id)}')
+var keyVaultName = '${prefix}-kv-${suffix}'
+var storageAccountName = toLower('${prefix}sa${suffix}')
 
 // @minLength(5)
 // @maxLength(50)
