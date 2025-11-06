@@ -58,10 +58,10 @@ var blobStorageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${
 // output blobContainerName string = blobContainerName
 
 module keyVaultSecretModule 'modules/keyvaultsecret.bicep' = {
-  name: '${keyVaultName}secretmodule'
+  name: 'keyVaultSecretModule'
   params: {
     keyVaultName: keyVaultName
-    storageAccountName: storageAccountName
-    connectionString: blobStorageConnectionString
+    secretName: '${storageAccountName}-conn-str'
+    secretValue: blobStorageConnectionString
   }
 }
