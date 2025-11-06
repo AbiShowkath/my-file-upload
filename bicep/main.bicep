@@ -15,7 +15,7 @@ var storageAccountName = toLower('${prefix}sa${suffix}')
 // param acrName string = '${namePrefix}acr${uniqueString(resourceGroup().id)}'
 
 module managedIdentityModule 'modules/managedIdentity.bicep' = {
-  name: '${managedIdentityName}module'
+  name: 'managedIdentityModule'
   params: {
     location: location
     managedIdentityName: managedIdentityName
@@ -23,7 +23,7 @@ module managedIdentityModule 'modules/managedIdentity.bicep' = {
 }
 
 module keyVaultModule 'modules/keyvault.bicep' = {
-  name: '${keyVaultName}module'
+  name: 'keyVaultModule'
   params: {
     location: location
     keyVaultName: keyVaultName
@@ -32,7 +32,7 @@ module keyVaultModule 'modules/keyvault.bicep' = {
 }
 
 module storageAccountModule 'modules/storageAccounts.bicep' = {
-  name: '${storageAccountName}module'
+  name: 'storageAccountModule'
   params: {
     location: location
     storageAccountName: storageAccountName
@@ -42,13 +42,16 @@ module storageAccountModule 'modules/storageAccounts.bicep' = {
 
 resource sa 'Microsoft.Storage/storageAccounts@2025-01-01' existing = {
   name: storageAccountName
+  dependsOn: [
+    storageAccountModule
+  ]
 }
 
 // Determine our connection string
 
-var blobStorageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${sa.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${listKeys(sa.id, sa.apiVersion).keys[0].value}'
+var blobStorageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${sa.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${sa.listKeys().keys[0].value}'
 // DefaultEndpointsProtocol=https;AccountName=${sa.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${sa.listKeys().keys[0].value}
-// DefaultEndpointsProtocol=https;EndpointSuffix=${environment().suffixes.storage};AccountName=${sa.name};AccountKey=${listKeys(sa.id, sa.apiVersion).keys[0].value}
+// DefaultEndpointsProtocol=https;EndpointSuffix=${environment().suffixes.storage};AccountName=${sa.name};AccountKey=${sa.listKeys().keys[0].value}
 
 // Output our variable
 // output blobStorageConnectionString string = blobStorageConnectionString

@@ -27,5 +27,5 @@ resource sa 'Microsoft.Storage/storageAccounts@2025-01-01' = {
   properties: {}
 }
 
-output storageAccountName string = storageAccountName
+output storageAccountName string = sa.name
 output storageAccountId string = sa.id
