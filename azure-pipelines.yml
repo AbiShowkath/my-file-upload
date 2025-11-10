@@ -7,8 +7,6 @@ variables:
 
   # system.debug: true
 
-  # buildConfiguration: 'Release'
-
   # Azure Resource Variables
   resourceGroupName: $(namePrefix)RG
   appName: $(namePrefix)app
@@ -34,7 +32,7 @@ stages:
 - stage: Dev
   displayName: 'Dev Deployment'
   jobs:
-  - job: Deployment
+  - job: InfrastructureDeployment
     displayName: 'Deploy main Bicep Template to Azure'
     variables:
     - group: fileupload
@@ -64,29 +62,48 @@ stages:
       
       - task: AzureCLI@2
         displayName: 'Login to ACR'
+        name: GetOutputs
         inputs:
           azureSubscription: '${{ parameters.serviceConnection }}'
           scriptType: 'bash'
           scriptLocation: 'inlineScript'
           inlineScript: |
-            acrName=$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.acrName.value -o tsv)
-            echo "Azure Container Registry Name: $acrName"
-            acrLoginServer="$acrName.azurecr.io"
-            echo "Logging in to Azure Container Registry: $acrLoginServer"
-            az acr login -n $acrName
+            acrNameOutput=$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.acrName.value -o tsv)
+            echo "ACR Name: $acrNameOutput"
+            echo "##vso[task.setvariable variable=acrName;isOutput=true]$acrNameOutput"
+            kvNameOutput=$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.kvName.value -o tsv)
+            echo "Key Vault Name: $kvNameOutput"
+            echo "##vso[task.setvariable variable=kvName;isOutput=true]$kvNameOutput"
+            saNameOutput=$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.saName.value -o tsv)
+            echo "Storage Account Name: $saNameOutput"
+            echo "##vso[task.setvariable variable=saName;isOutput=true]$saNameOutput"
+            acrLoginServer="$acrNameOutput.azurecr.io"
+            az acr login -n $acrNameOutput
             docker tag $(namePrefix)-api:$(Build.BuildId) $acrLoginServer/$(namePrefix)-api:latest
             docker push $acrLoginServer/$(namePrefix)-api:latest
-      
-      # - task: AzureResourceManagerTemplateDeployment@3
-      #   displayName: 'Deploy Container Bicep Template'
-      #   inputs:
-      #     deploymentScope: 'Resource Group'
-      #     action: 'Create Or Update Resource Group'
-      #     resourceGroupName: '$(resourceGroupName)'
-      #     location: '$(location)'
-      #     templateLocation: 'Linked artifact'
-      #     csmFile: '$(containerTemplateFile)'
-      #     overrideParameters: '-namePrefix $(namePrefix)app -appId $(appId) -password $(password) -tenantId $(tenantId)'
-      #     deploymentMode: 'Incremental'
-      #     deploymentName: '$(containerDeploymentName)'
-      #     connectedServiceName: '${{ parameters.serviceConnection }}'
+
+  - job: ContainerDeployment
+    displayName: 'Deploy Container Bicep Template to Azure'
+    dependsOn: InfrastructureDeployment
+    variables:
+    - group: fileupload
+    - name : acrName
+      value: $[dependencies.InfrastructureDeployment.outputs['GetOutputs.acrName']]
+    - name : kvName
+      value: $[dependencies.InfrastructureDeployment.outputs['GetOutputs.kvName']]
+    - name : saName
+      value: $[dependencies.InfrastructureDeployment.outputs['GetOutputs.saName']]
+    steps:
+      - task: AzureResourceManagerTemplateDeployment@3
+        displayName: 'Deploy Container Bicep Template'
+        inputs:
+          deploymentScope: 'Resource Group'
+          action: 'Create Or Update Resource Group'
+          resourceGroupName: '$(resourceGroupName)'
+          location: '$(location)'
+          templateLocation: 'Linked artifact'
+          csmFile: '$(containerTemplateFile)'
+          overrideParameters: '-namePrefix $(namePrefix)app -acrName $(acrName) -kvName $(kvName) -saName $(saName) -appId $(appId) -tenantId $(tenantId) -password $(password)'
+          deploymentMode: 'Incremental'
+          deploymentName: '$(containerDeploymentName)'
+          connectedServiceName: '${{ parameters.serviceConnection }}'

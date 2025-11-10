@@ -17,6 +17,8 @@ param location string = resourceGroup().location
 @description('The name of the storage account')
 param storageAccountName string = 'store${uniqueString(resourceGroup().id)}'
 
+param storageAccountContainerName string
+
 param appId string
 
 resource sa 'Microsoft.Storage/storageAccounts@2025-01-01' = {
@@ -39,5 +41,19 @@ resource saRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' =
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
     principalId: appId
     principalType: 'ServicePrincipal'
+  }
+}
+
+resource saBlobService 'Microsoft.Storage/storageAccounts/blobServices@2025-01-01' = {
+  parent: sa
+  name: 'default'
+  properties: {}
+}
+
+resource saContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2025-01-01' = {
+  parent: saBlobService
+  name: storageAccountContainerName
+  properties: {
+    publicAccess: 'None'
   }
 }

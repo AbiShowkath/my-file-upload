@@ -12,6 +12,7 @@ var suffix = substring(uniqueString(resourceGroup().id), 0, 8)
 
 var keyVaultName = '${prefix}-kv-${suffix}'
 var storageAccountName = toLower('${prefix}sa${suffix}')
+var storageAccountContainerName = toLower('${prefix}sac${suffix}')
 
 @minLength(5)
 @maxLength(50)
@@ -39,11 +40,14 @@ module keyVaultModule 'modules/keyvault.bicep' = {
   }
 }
 
+output kvName string = keyVaultModule.outputs.kvName
+
 module storageAccountModule 'modules/storageAccounts.bicep' = {
   name: 'storageAccountModule'
   params: {
     location: location
     storageAccountName: storageAccountName
+    storageAccountContainerName: storageAccountContainerName
     storageAccountType: 'Standard_LRS'
     appId: appId
   }
@@ -55,6 +59,7 @@ resource sa 'Microsoft.Storage/storageAccounts@2025-01-01' existing = {
     storageAccountModule
   ]
 }
+output saName string = sa.name
 
 // Determine our connection string
 
@@ -62,9 +67,6 @@ var blobStorageConnectionString = 'DefaultEndpointsProtocol=https;EndpointSuffix
 // DefaultEndpointsProtocol=https;AccountName=${sa.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${sa.listKeys().keys[0].value}
 // DefaultEndpointsProtocol=https;EndpointSuffix=${environment().suffixes.storage};AccountName=${sa.name};AccountKey=${sa.listKeys().keys[0].value}
 
-// Output our variable
-// output blobStorageConnectionString string = blobStorageConnectionString
-// output blobContainerName string = blobContainerName
 
 module keyVaultSecretModule 'modules/keyvaultsecret.bicep' = {
   name: 'keyVaultSecretModule'
