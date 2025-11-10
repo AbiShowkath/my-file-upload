@@ -35,7 +35,7 @@ stages:
   displayName: 'Dev Deployment'
   jobs:
   - job: Deployment
-    displayName: 'Deploy ACR Bicep Template to Azure'
+    displayName: 'Deploy main Bicep Template to Azure'
     variables:
     - group: fileupload
     steps:

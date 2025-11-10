@@ -28,6 +28,9 @@ module managedIdentityModule 'modules/managedIdentity.bicep' = {
 
 module keyVaultModule 'modules/keyvault.bicep' = {
   name: 'keyVaultModule'
+  dependsOn: [
+    managedIdentityModule
+  ]
   params: {
     location: location
     keyVaultName: keyVaultName

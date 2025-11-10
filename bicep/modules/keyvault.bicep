@@ -15,10 +15,6 @@ var roleIdMapping = {
   'Key Vault Secrets User': '4633458b-17de-408a-b874-0445c86b69e6'
 }
 
-resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
-  name: managedIdentityName
-}
-
 resource keyVault 'Microsoft.KeyVault/vaults@2025-05-01' = {
   name: keyVaultName
   location: location
@@ -35,6 +31,10 @@ resource keyVault 'Microsoft.KeyVault/vaults@2025-05-01' = {
     //   bypass: 'AzureServices'
     // }
   }
+}
+
+resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2024-11-30' existing = {
+  name: managedIdentityName
 }
 
 resource keyVaultSecretsOfficerAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
