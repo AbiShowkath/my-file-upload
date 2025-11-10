@@ -69,13 +69,11 @@ stages:
           scriptType: 'bash'
           scriptLocation: 'inlineScript'
           inlineScript: |
-            echo "##[section]Logging in to Azure Container Registry"
-            echo "$(deploymentName)"
-            echo "$(resourceGroupName)"
-            echo "$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.acrName.value -o tsv)"
             acrName=$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.acrName.value -o tsv)
-            acrLoginServer=$(acrName).azurecr.io
-            az acr login -n $(acrName)
+            echo "Azure Container Registry Name: $acrName"
+            acrLoginServer="$acrName.azurecr.io"
+            echo "Logging in to Azure Container Registry: $acrLoginServer"
+            az acr login -n $acrName
             docker tag $(namePrefix)-api:$(Build.BuildId) $acrLoginServer/$(namePrefix)-api:latest
             docker push $acrLoginServer/$(namePrefix)-api:latest
       
