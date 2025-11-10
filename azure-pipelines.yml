@@ -103,7 +103,7 @@ stages:
           location: '$(location)'
           templateLocation: 'Linked artifact'
           csmFile: '$(containerTemplateFile)'
-          overrideParameters: '-namePrefix $(namePrefix)app -acrName $(acrName) -kvName $(kvName) -saName $(saName) -appId $(appId) -tenantId $(tenantId) -password $(password)'
+          overrideParameters: '-namePrefix $(namePrefix) -acrName $(acrName) -kvName $(kvName) -saName $(saName) -appId $(appId) -tenantId $(tenantId) -password $(password)'
           deploymentMode: 'Incremental'
           deploymentName: '$(containerDeploymentName)'
           connectedServiceName: '${{ parameters.serviceConnection }}'
