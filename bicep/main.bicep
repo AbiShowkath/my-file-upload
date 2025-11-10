@@ -1,4 +1,8 @@
 param namePrefix string = 'fileupload'
+param appId string
+// param password string
+param tenantId string
+
 param location string = resourceGroup().location
 
 var managedIdentityName = '${namePrefix}-mi'
@@ -9,10 +13,10 @@ var suffix = substring(uniqueString(resourceGroup().id), 0, 8)
 var keyVaultName = '${prefix}-kv-${suffix}'
 var storageAccountName = toLower('${prefix}sa${suffix}')
 
-// @minLength(5)
-// @maxLength(50)
-// @description('Provide a globally unique name of your Azure Container Registry')
-// param acrName string = '${namePrefix}acr${uniqueString(resourceGroup().id)}'
+@minLength(5)
+@maxLength(50)
+@description('Provide a globally unique name of your Azure Container Registry')
+param acrName string = '${namePrefix}acr${uniqueString(resourceGroup().id)}'
 
 module managedIdentityModule 'modules/managedIdentity.bicep' = {
   name: 'managedIdentityModule'
@@ -28,6 +32,7 @@ module keyVaultModule 'modules/keyvault.bicep' = {
     location: location
     keyVaultName: keyVaultName
     managedIdentityName: managedIdentityName
+    appId: appId
   }
 }
 
@@ -37,6 +42,7 @@ module storageAccountModule 'modules/storageAccounts.bicep' = {
     location: location
     storageAccountName: storageAccountName
     storageAccountType: 'Standard_LRS'
+    appId: appId
   }
 }
 
@@ -49,7 +55,7 @@ resource sa 'Microsoft.Storage/storageAccounts@2025-01-01' existing = {
 
 // Determine our connection string
 
-var blobStorageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${sa.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${sa.listKeys().keys[0].value}'
+var blobStorageConnectionString = 'DefaultEndpointsProtocol=https;EndpointSuffix=${environment().suffixes.storage};AccountName=${sa.name};AccountKey=${sa.listKeys().keys[0].value};BlobEndpoint=https://${sa.name}.blob.core.windows.net/;FileEndpoint=https://${sa.name}.file.core.windows.net/;QueueEndpoint=https://${sa.name}.queue.core.windows.net/;TableEndpoint=https://${sa.name}.table.core.windows.net/'
 // DefaultEndpointsProtocol=https;AccountName=${sa.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${sa.listKeys().keys[0].value}
 // DefaultEndpointsProtocol=https;EndpointSuffix=${environment().suffixes.storage};AccountName=${sa.name};AccountKey=${sa.listKeys().keys[0].value}
 
@@ -65,3 +71,14 @@ module keyVaultSecretModule 'modules/keyvaultsecret.bicep' = {
     secretValue: blobStorageConnectionString
   }
 }
+
+module acrModule 'modules/acr.bicep' = {
+  name: 'acrModule'
+  params: {
+    location: location
+    acrName: acrName
+  }
+}
+
+output acrLoginServer string = acrModule.outputs.acrLoginServer
+output acrName string = acrModule.outputs.acrName

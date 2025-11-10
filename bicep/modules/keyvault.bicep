@@ -1,6 +1,7 @@
 param location string
 param keyVaultName string
 param managedIdentityName string
+param appId string
 
 var tenantId = subscription().tenantId
 var roleIdMapping = {
@@ -46,12 +47,12 @@ resource keyVaultSecretsOfficerAssignment 'Microsoft.Authorization/roleAssignmen
   }
 }
 
-// resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-//   name: guid(keyVault.id, <AppId>, roleIdMapping['Key Vault Secrets User'])
-//   scope: keyVault
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIdMapping['Key Vault Secrets User'])
-//     principalId: <AppId>
-//     principalType: 'ServicePrincipal'
-//   }
-// }
+resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(keyVault.id, appId, roleIdMapping['Key Vault Secrets User'])
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleIdMapping['Key Vault Secrets User'])
+    principalId: appId
+    principalType: 'ServicePrincipal'
+  }
+}

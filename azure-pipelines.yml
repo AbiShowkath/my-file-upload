@@ -2,7 +2,6 @@ trigger:
   - azure-entra-id
 
 variables:
-  appName: 'file-upload-app'
   namePrefix: 'fileupload'
   vmImageName: 'ubuntu-latest'
 
@@ -11,12 +10,16 @@ variables:
   # buildConfiguration: 'Release'
 
   # Azure Resource Variables
-  resourceGroupName: $(namePrefix)appRG
+  resourceGroupName: $(namePrefix)RG
+  appName: $(namePrefix)app
   location: 'eastus'
 
   # Bicep files
   deploymentName: 'main'
   templateFile: 'bicep/$(deploymentName).bicep'
+
+  containerDeploymentName: 'container'
+  containerTemplateFile: 'bicep/$(containerDeploymentName).bicep'
 
 pool:
   vmImage: $(vmImageName)
@@ -31,13 +34,13 @@ stages:
 - stage: Dev
   displayName: 'Dev Deployment'
   jobs:
-  - job: Infrastructure_Deployment
-    displayName: 'Deploy ACR Bicep Template to Azure'  
-    pool:
-      vmImage: $(vmImageName)
+  - job: Deployment
+    displayName: 'Deploy ACR Bicep Template to Azure'
+    variables:
+    - group: fileupload
     steps:
       - task: AzureResourceManagerTemplateDeployment@3
-        displayName: 'Deploy ACR Bicep Template'
+        displayName: 'Deploy Main Bicep Template'
         inputs:
           deploymentScope: 'Resource Group'
           action: 'Create Or Update Resource Group'
@@ -45,7 +48,43 @@ stages:
           location: '$(location)'
           templateLocation: 'Linked artifact'
           csmFile: '$(templateFile)'
-          overrideParameters: '-namePrefix $(namePrefix)app'
+          overrideParameters: '-namePrefix $(namePrefix)app -appId $(appId) -tenantId $(tenantId)'
           deploymentMode: 'Incremental'
           deploymentName: '$(deploymentName)'
           connectedServiceName: '${{ parameters.serviceConnection }}'
+      
+      - task: Docker@2
+        displayName: 'Build backend Docker image'
+        inputs:
+          command: 'build'
+          Dockerfile: './py-file-upload/Dockerfile'
+          repository: '$(namePrefix)-api'
+          tags: |
+            $(Build.BuildId)    
+      
+      - task: AzureCLI@2
+        displayName: 'Login to ACR'
+        inputs:
+          azureSubscription: '${{ parameters.serviceConnection }}'
+          scriptType: 'bash'
+          scriptLocation: 'inlineScript'
+          inlineScript: |
+            acrName=$(az deployment group show --name $(deploymentName) --resource-group $(resourceGroupName) --query properties.outputs.acrName.value -o tsv)
+            acrLoginServer=$(acrName).azurecr.io
+            az acr login -n $(acrName)
+            docker tag $(namePrefix)-api:$(Build.BuildId) $acrLoginServer/$(namePrefix)-api:latest
+            docker push $acrLoginServer/$(namePrefix)-api:latest
+      
+      # - task: AzureResourceManagerTemplateDeployment@3
+      #   displayName: 'Deploy Container Bicep Template'
+      #   inputs:
+      #     deploymentScope: 'Resource Group'
+      #     action: 'Create Or Update Resource Group'
+      #     resourceGroupName: '$(resourceGroupName)'
+      #     location: '$(location)'
+      #     templateLocation: 'Linked artifact'
+      #     csmFile: '$(containerTemplateFile)'
+      #     overrideParameters: '-namePrefix $(namePrefix)app -appId $(appId) -password $(password) -tenantId $(tenantId)'
+      #     deploymentMode: 'Incremental'
+      #     deploymentName: '$(containerDeploymentName)'
+      #     connectedServiceName: '${{ parameters.serviceConnection }}'
