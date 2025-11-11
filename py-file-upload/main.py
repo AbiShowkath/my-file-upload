@@ -70,7 +70,7 @@ async def upload_blob(container_name: str, file: UploadFile):
     print(f"Blob URL: {blob_client.url}")
     return {"blob_url": blob_client.url}
 
-@app.post("/containers/blobs/")
+@app.get("/containers/blobs/")
 async def list_blobs(container_name: str):
     container_client = blob_service_client.get_container_client(container=container_name)
     blobs = container_client.list_blobs()
